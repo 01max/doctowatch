@@ -1,6 +1,6 @@
 # Copy this file to config.yml and fill in your values.
 # Each top-level key is a separate watch with a human-readable name.
-# run.rb loops through all of them on every execution.
+# check.rb loops through all of them on every execution.
 
 dentist_paris:
   visit_motive_ids: 7767829
