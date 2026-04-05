@@ -23,28 +23,38 @@ class AvailabilityCheckService
 
   # Checks availability and notifies via Telegram if slots are found.
   #
-  # @return [void]
+  # @return [Hash] result with :watch_name, :total, :slots_by_date
   def call
-    if availabilities.total.to_i.zero?
+    if @availabilities.total.to_i.zero?
       @logger.info("no availability found for #{@watch_name}")
-      return
+      return { watch_name: @watch_name, total: 0, slots_by_date: {} }
     end
 
-    message = format_message(availabilities)
+    message = format_message(@availabilities)
     Telegram::ChatService.send_message(message)
-    @logger.info("#{availabilities.total} slot(s) found for #{@watch_name} — notification sent")
+    @logger.info("#{@availabilities.total} slot(s) found for #{@watch_name} — notification sent")
+
+    report(message)
   end
 
   private
 
+  def report(_message)
+    {
+      watch_name: @watch_name,
+      total: @availabilities.total,
+      slots_by_date: @availabilities.slots.map(&:to_s)
+    }
+  end
+
   def load_availabilities!
     @availabilities = TocDoc::Availability.where(
       visit_motive_ids: @params['visit_motive_ids'],
-      agenda_ids:       @params['agenda_ids'],
-      practice_ids:     @params['practice_ids'],
-      start_date:       resolve_date(@params['start_date']),
-      telehealth:       @params.fetch('telehealth', false),
-      limit:            @params.fetch('limit', 5)
+      agenda_ids: @params['agenda_ids'],
+      practice_ids: @params['practice_ids'],
+      start_date: resolve_date(@params['start_date']),
+      telehealth: @params.fetch('telehealth', false),
+      limit: @params.fetch('limit', 5)
     )
 
     @availabilities.load_next! if @availabilities.total.to_i.zero? && @availabilities.more?

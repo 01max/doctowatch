@@ -29,12 +29,17 @@ if config.nil? || config.empty?
 end
 
 success = true
+results = []
 
 config.each do |watch_name, params|
-  AvailabilityCheckService.new(watch_name, params, logger).call
+  results << AvailabilityCheckService.new(watch_name, params, logger).call
 rescue StandardError => e
   logger.error("#{watch_name}: #{e.message}")
+  results << { watch_name: watch_name, error: e.message }
   success = false
 end
+
+require_relative 'services/report_writer'
+ReportWriter.write(results)
 
 exit(success ? 0 : 1)

@@ -1,4 +1,5 @@
 config.yml
 .env
-tmp/
+**/tmp/*
+!**/tmp/.keep
 vendor/bundle

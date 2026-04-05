@@ -2,6 +2,8 @@
 # Each top-level key is a separate watch with a human-readable name.
 # check.rb loops through all of them on every execution.
 
+# Warning : the config root keys will be used in the action's report, 
+# if the repository is public, so will these keys.
 dentist_paris:
   visit_motive_ids: 7767829
   agenda_ids: 1101600
