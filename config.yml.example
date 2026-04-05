@@ -1,0 +1,17 @@
+# Copy this file to config.yml and fill in your values.
+# Each top-level key is a separate watch with a human-readable name.
+# run.rb loops through all of them on every execution.
+
+dentist_paris:
+  visit_motive_ids: 7767829
+  agenda_ids: 1101600
+  practice_ids: 377272
+  start_date: today          # "today" or a specific date, e.g. "2025-06-01"
+  telehealth: false
+  limit: 5                   # optional, defaults to 5
+
+dermatologist_lyon:
+  visit_motive_ids: 456789
+  agenda_ids: 987654
+  practice_ids: 112233
+  start_date: today

@@ -1,0 +1,7 @@
+AllCops:
+  NewCops: enable
+  SuggestExtensions: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always

@@ -1,0 +1,4 @@
+config.yml
+.env
+tmp/
+vendor/bundle
