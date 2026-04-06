@@ -15,10 +15,13 @@ jobs:
 
       - name: Install Ruby and dependencies
         run: |
-          sudo apt-get install -y rbenv ruby-build
+          git clone https://github.com/rbenv/rbenv.git ~/.rbenv || true
+          git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build || true
+          echo "$HOME/.rbenv/bin" >> $GITHUB_PATH
+          echo "$HOME/.rbenv/shims" >> $GITHUB_PATH
+          export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
           rbenv install -s 3.2.0
           rbenv global 3.2.0
-          eval "$(rbenv init -)"
           gem install bundler
           bundle install
 
