@@ -7,7 +7,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
@@ -24,14 +24,8 @@ jobs:
         env:
           DOCTOWATCH_CONFIG: ${{ secrets.DOCTOWATCH_CONFIG }}
 
-      - name: Install and start Tor
-        run: |
-          sudo apt-get install -y tor torsocks
-          sudo service tor start
-          sleep 5
-
       - name: Run availability check
-        run: torsocks bundle exec ruby check.rb
+        run: bundle exec ruby check.rb
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
