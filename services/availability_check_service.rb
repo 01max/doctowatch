@@ -10,8 +10,6 @@ require_relative 'telegram/chat_service'
 # @example
 #   AvailabilityCheckService.new('dentist_paris', params, logger).call
 class AvailabilityCheckService
-  after_initialize :load_availabilities!
-
   # @param watch_name [String] human-readable watch identifier (used in log messages and notifications)
   # @param params [Hash] watch configuration hash from +config.yml+
   # @param logger [Logger] logger instance for output
@@ -19,6 +17,10 @@ class AvailabilityCheckService
     @watch_name = watch_name
     @params     = params
     @logger     = logger
+
+    load_availabilities!
+
+    self
   end
 
   # Checks availability and notifies via Telegram if slots are found.
@@ -51,7 +53,7 @@ class AvailabilityCheckService
   end
 
   # Fetches availabilities from the Doctolib API and stores them in +@availabilities+.
-  # Called automatically after +initialize+ via +after_initialize+.
+  # Called automatically after +initialize+.
   # If the first page returns no slots but more pages exist, loads the next page.
   def load_availabilities!
     @availabilities = TocDoc::Availability.where(
