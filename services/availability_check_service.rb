@@ -39,6 +39,9 @@ class AvailabilityCheckService
 
   private
 
+  # Builds the result hash returned from {#call}.
+  #
+  # @return [Hash] with :watch_name, :total, :slots_by_date keys
   def report(_message)
     {
       watch_name: @watch_name,
@@ -47,6 +50,9 @@ class AvailabilityCheckService
     }
   end
 
+  # Fetches availabilities from the Doctolib API and stores them in +@availabilities+.
+  # Called automatically after +initialize+ via +after_initialize+.
+  # If the first page returns no slots but more pages exist, loads the next page.
   def load_availabilities!
     @availabilities = TocDoc::Availability.where(
       visit_motive_ids: @params['visit_motive_ids'],
@@ -60,6 +66,11 @@ class AvailabilityCheckService
     @availabilities.load_next! if @availabilities.total.to_i.zero? && @availabilities.more?
   end
 
+  # Resolves a date value from config. The string +"today"+ (or +nil+) maps to {Date.today};
+  # any other value is parsed with {Date.parse}.
+  #
+  # @param value [String, nil]
+  # @return [Date]
   def resolve_date(value)
     return Date.today if value.nil? || value.to_s.strip.downcase == 'today'
 
