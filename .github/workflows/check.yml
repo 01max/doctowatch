@@ -13,11 +13,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "3.2"
-          bundler-cache: true
+      - name: Install dependencies
+        run: bundle install
 
       - name: Write config
         run: echo "$DOCTOWATCH_CONFIG" > config.yml
