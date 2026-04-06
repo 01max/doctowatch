@@ -13,8 +13,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies
-        run: bundle install
+      - name: Install Ruby and dependencies
+        run: |
+          sudo apt-get install -y rbenv ruby-build
+          rbenv install -s 3.2.0
+          rbenv global 3.2.0
+          eval "$(rbenv init -)"
+          gem install bundler
+          bundle install
 
       - name: Write config
         run: echo "$DOCTOWATCH_CONFIG" > config.yml
