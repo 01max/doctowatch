@@ -24,8 +24,14 @@ jobs:
         env:
           DOCTOWATCH_CONFIG: ${{ secrets.DOCTOWATCH_CONFIG }}
 
+      - name: Install and start Tor
+        run: |
+          sudo apt-get install -y tor proxychains4
+          sudo service tor start
+          sleep 5
+
       - name: Run availability check
-        run: bundle exec ruby check.rb
+        run: proxychains4 -q bundle exec ruby check.rb
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
