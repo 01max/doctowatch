@@ -72,7 +72,7 @@ GEM
       prism (~> 1.7)
     ruby-progressbar (1.13.0)
     stringio (3.2.0)
-    toc_doc (1.8.0)
+    toc_doc (1.9.0)
       faraday (>= 1, < 3)
       faraday-retry (~> 2.0)
     tsort (0.2.0)
