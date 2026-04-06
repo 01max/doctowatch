@@ -19,8 +19,6 @@ class AvailabilityCheckService
     @logger     = logger
 
     load_availabilities!
-
-    self
   end
 
   # Checks availability and notifies via Telegram if slots are found.
