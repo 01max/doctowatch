@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'time'
 
 # Writes a JSON report to a file for later consumption.
 module ReportWriter
