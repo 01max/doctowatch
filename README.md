@@ -1,15 +1,17 @@
 # Doctowatch
 
-Periodically checks [Doctolib](https://www.doctolib.fr) for appointment availability and sends a Telegram notification when slots are found. Runs as a GitHub Actions cron job every 30 minutes.
+Periodically checks [Doctolib](https://www.doctolib.fr) for appointment availability and sends a Telegram notification when slots are found or change. Runs as a GitHub Actions cron job every 30 minutes on a self-hosted runner.
 
 Uses the [`toc_doc`](https://github.com/01max/toc_doc) gem to query the Doctolib API.
 
 ## How it works
 
 1. Reads `config.yml`, which defines one or more watches (each top-level key is a watch)
-2. For each watch, calls the Doctolib availability API
-3. If slots are found, sends a Telegram message
-4. If no slots, logs it and moves on — watches are independent
+2. Downloads the previous run's report to detect changes
+3. For each watch, calls the Doctolib availability API
+4. If slots are found **and differ from the previous run**, sends a Telegram message
+5. If no slots, or slots are unchanged, logs it and moves on — watches are independent
+6. Saves a `report.json` artifact with the run results
 
 **Notification format:**
 
@@ -55,14 +57,14 @@ TELEGRAM_CHAT_ID=your_chat_id
 
 ```sh
 bundle install
-DEV_MODE=1 ruby check.rb
+bundle exec ruby check.rb
 ```
 
-`DEV_MODE=1` loads `.env` via dotenv.
+`.env` is loaded automatically outside of CI via dotenv.
 
 ## GitHub Actions
 
-The workflow runs every 30 minutes. Add three repository secrets:
+The workflow runs every 30 minutes on a self-hosted runner (required — Doctolib blocks GitHub-hosted runner IPs). Add three repository secrets:
 
 | Secret | Description |
 |---|---|
@@ -71,4 +73,16 @@ The workflow runs every 30 minutes. Add three repository secrets:
 | `DOCTOWATCH_CONFIG` | Full contents of your `config.yml` |
 
 > `config.yml` is gitignored. The `DOCTOWATCH_CONFIG` secret is written to the file at runtime before `check.rb` runs.
+
+### Self-hosted runner
+
+The workflow requires a self-hosted runner with a residential IP. The recommended setup is a Docker container using [`myoung34/github-runner`](https://github.com/myoung34/docker-github-actions-runner) with these env vars:
+
+| Variable | Value |
+|---|---|
+| `REPO_URL` | `https://github.com/<you>/doctowatch` to __your__ fork|
+| `RUNNER_TOKEN` | Token from repo Settings > Actions > Runners |
+| `RUNNER_NAME` | Any name |
+| `LABELS` | `self-hosted` |
+| `DISABLE_AUTOMATIC_DEREGISTRATION` | `true` |
 
