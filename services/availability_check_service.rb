@@ -13,10 +13,11 @@ class AvailabilityCheckService
   # @param watch_name [String] human-readable watch identifier (used in log messages and notifications)
   # @param params [Hash] watch configuration hash from +config.yml+
   # @param logger [Logger] logger instance for output
-  def initialize(watch_name, params, logger)
-    @watch_name = watch_name
-    @params     = params
-    @logger     = logger
+  def initialize(watch_name, params, logger, previous_slots = nil)
+    @watch_name     = watch_name
+    @params         = params
+    @logger         = logger
+    @previous_slots = previous_slots
 
     load_availabilities!
   end
@@ -28,6 +29,12 @@ class AvailabilityCheckService
     if @availabilities.total.to_i.zero?
       @logger.info("no availability found for #{@watch_name}")
       return { watch_name: @watch_name, total: 0, slots_by_date: {} }
+    end
+
+    current_slots = @availabilities.slots.map(&:to_s).sort
+    if @previous_slots && current_slots == @previous_slots.sort
+      @logger.info("#{@availabilities.total} slot(s) found for #{@watch_name} — unchanged, skipping notification")
+      return report(nil)
     end
 
     message = format_message(@availabilities)

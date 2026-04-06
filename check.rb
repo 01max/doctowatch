@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require 'logger'
 require 'yaml'
 
@@ -28,11 +29,19 @@ if config.nil? || config.empty?
   exit 1
 end
 
+previous_report_path = File.expand_path('tmp/previous/report.json', __dir__)
+previous_slots = begin
+  data = JSON.parse(File.read(previous_report_path))
+  data['watches'].each_with_object({}) { |w, h| h[w['watch']] = w['slots_by_date'] || [] }
+rescue StandardError
+  {}
+end
+
 success = true
 results = []
 
 config.each do |watch_name, params|
-  results << AvailabilityCheckService.new(watch_name, params, logger).call
+  results << AvailabilityCheckService.new(watch_name, params, logger, previous_slots[watch_name]).call
 rescue StandardError => e
   logger.error("#{watch_name}: #{e.message}")
   results << { watch_name: watch_name, error: e.message }

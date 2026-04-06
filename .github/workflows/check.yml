@@ -25,6 +25,14 @@ jobs:
           gem install bundler
           bundle install
 
+      - name: Download previous report
+        uses: dawidd6/action-download-artifact@v9
+        with:
+          name: report
+          path: tmp/previous
+          if_no_artifact_found: ignore
+        continue-on-error: true
+
       - name: Write config
         run: echo "$DOCTOWATCH_CONFIG" > config.yml
         env:
