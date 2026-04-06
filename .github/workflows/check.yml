@@ -25,7 +25,7 @@ jobs:
           DOCTOWATCH_CONFIG: ${{ secrets.DOCTOWATCH_CONFIG }}
 
       - name: Run availability check
-        run: bundle exec ruby run.rb
+        run: bundle exec ruby check.rb
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
