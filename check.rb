@@ -32,7 +32,7 @@ end
 previous_report_path = File.expand_path('tmp/previous/report.json', __dir__)
 previous_slots = begin
   data = JSON.parse(File.read(previous_report_path))
-  data['watches'].each_with_object({}) { |w, h| h[w['watch']] = w['slots_by_date'] || [] }
+  data['watches'].to_h { |w| [w['watch'], w['slots_by_date'] || []] }
 rescue StandardError
   logger.warn("Previous report not found or invalid at #{previous_report_path}, starting fresh")
   {}

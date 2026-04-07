@@ -10,6 +10,8 @@ require_relative 'telegram/chat_service'
 # @example
 #   AvailabilityCheckService.new('dentist_paris', params, logger).call
 class AvailabilityCheckService
+  attr_reader :availabilities
+
   # @param watch_name [String] human-readable watch identifier (used in log messages and notifications)
   # @param params [Hash] watch configuration hash from +config.yml+
   # @param logger [Logger] logger instance for output
@@ -38,7 +40,11 @@ class AvailabilityCheckService
     end
 
     message = format_message(@availabilities)
-    Telegram::ChatService.send_message(message)
+    reply_markup = Telegram::ChatService.build_inline_keyboard([booking_url_hash])
+
+    telegram_chat = Telegram::ChatService.new(**chat_params)
+    telegram_chat.send(message, reply_markup: reply_markup)
+
     @logger.info("#{@availabilities.total} slot(s) found for #{@watch_name} — notification sent")
 
     report(message)
@@ -67,7 +73,8 @@ class AvailabilityCheckService
       practice_ids: @params['practice_ids'],
       start_date: resolve_date(@params['start_date']),
       telehealth: @params.fetch('telehealth', false),
-      limit: @params.fetch('limit', 5)
+      limit: @params.fetch('limit', 5),
+      booking_slug: @params['booking_slug']
     )
 
     @availabilities.load_next! if @availabilities.total.to_i.zero? && @availabilities.more?
@@ -98,5 +105,21 @@ class AvailabilityCheckService
 
     lines << "\n(#{collection.total} slots total)"
     lines.join("\n")
+  end
+
+  def chat_params
+    return nil unless @params['telegram_chat_id']
+
+    { chat_id: @params['telegram_chat_id'] }
+  end
+
+  def booking_url
+    @booking_url ||= @availabilities.booking_url
+  end
+
+  def booking_url_hash
+    return nil unless booking_url
+
+    { text: '👀', url: booking_url }
   end
 end
