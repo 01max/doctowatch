@@ -15,6 +15,8 @@ class AvailabilityCheckService
   # @param watch_name [String] human-readable watch identifier (used in log messages and notifications)
   # @param params [Hash] watch configuration hash from +config.yml+
   # @param logger [Logger] logger instance for output
+  # @param previous_slots [Array<String>, nil] slot strings from the previous run, used to suppress
+  #   duplicate notifications; pass +nil+ to always notify when slots are found
   def initialize(watch_name, params, logger, previous_slots = nil)
     @watch_name     = watch_name
     @params         = params
@@ -24,9 +26,9 @@ class AvailabilityCheckService
     load_availabilities!
   end
 
-  # Checks availability and notifies via Telegram if slots are found.
+  # Checks availability and notifies via Telegram if slots are found and have changed.
   #
-  # @return [Hash] result with :watch_name, :total, :slots_by_date
+  # @return [Hash] result with +:watch_name+, +:total+, +:slots_by_date+ keys
   def call
     if @availabilities.total.to_i.zero?
       @logger.info("no availability found for #{@watch_name}")
@@ -44,12 +46,15 @@ class AvailabilityCheckService
 
   private
 
+  # @return [Boolean] true if the current slots are identical to the previous run's slots
   def slots_unchanged?
     return false unless @previous_slots
 
     @availabilities.slots.map(&:to_s).sort == @previous_slots.sort
   end
 
+  # Sends a Telegram notification with the current availability.
+  # @return [void]
   def notify!
     message = format_message(@availabilities)
     reply_markup = Telegram::ChatService.build_inline_keyboard([booking_url_hash])
@@ -59,7 +64,7 @@ class AvailabilityCheckService
 
   # Builds the result hash returned from {#call}.
   #
-  # @return [Hash] with :watch_name, :total, :slots_by_date keys
+  # @return [Hash] with +:watch_name+, +:total+, +:slots_by_date+ keys
   def report
     {
       watch_name: @watch_name,
@@ -71,6 +76,7 @@ class AvailabilityCheckService
   # Fetches availabilities from the Doctolib API and stores them in +@availabilities+.
   # Called automatically after +initialize+.
   # If the first page returns no slots but more pages exist, loads the next page.
+  # @return [void]
   def load_availabilities!
     @availabilities = TocDoc::Availability.where(
       visit_motive_ids: @params['visit_motive_ids'],
@@ -112,16 +118,25 @@ class AvailabilityCheckService
     lines.join("\n")
   end
 
+  # Builds keyword arguments for {Telegram::ChatService#initialize}.
+  # Returns the per-watch +telegram_chat_id+ from config if set, otherwise falls back
+  # to the default chat ID from the environment.
+  #
+  # @return [Hash, nil]
   def chat_params
     return nil unless @params['telegram_chat_id']
 
     { chat_id: @params['telegram_chat_id'] }
   end
 
+  # @return [String, nil] booking URL from the availability response, memoized
   def booking_url
     @booking_url ||= @availabilities.booking_url
   end
 
+  # Builds the inline keyboard button hash for the booking URL.
+  #
+  # @return [Hash, nil] button hash or +nil+ if no booking URL is available
   def booking_url_hash
     return nil unless booking_url
 

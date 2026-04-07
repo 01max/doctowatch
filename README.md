@@ -39,10 +39,14 @@ dentist_paris:
   visit_motive_ids: 7767829
   agenda_ids: 1101600
   practice_ids: 377272
-  start_date: today       # "today" or "2025-06-01"
+  booking_slug: medecin-generaliste/paris/docteur-jean-dupont  # optional, used to build the booking URL button
+  start_date: today                  # "today" or "2025-06-01"
   telehealth: false
-  limit: 5                # optional, defaults to 5
+  limit: 5                           # optional, defaults to 5
+  telegram_chat_id: "123456789"      # optional, overrides TELEGRAM_DEFAULT_CHAT_ID
 ```
+
+All keys except `visit_motive_ids`, `agenda_ids`, and `practice_ids` are optional.
 
 ### 2. Telegram bot
 
@@ -50,8 +54,10 @@ Create a `.env` file for local runs:
 
 ```sh
 TELEGRAM_BOT_TOKEN=your_token
-TELEGRAM_CHAT_ID=your_chat_id
+TELEGRAM_DEFAULT_CHAT_ID=your_chat_id
 ```
+
+`TELEGRAM_DEFAULT_CHAT_ID` is the fallback chat used when a watch doesn't set `telegram_chat_id` in `config.yml`.
 
 ### 3. Run locally
 
