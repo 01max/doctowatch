@@ -33,29 +33,34 @@ class AvailabilityCheckService
       return { watch_name: @watch_name, total: 0, slots_by_date: {} }
     end
 
-    current_slots = @availabilities.slots.map(&:to_s).sort
-    if @previous_slots && current_slots == @previous_slots.sort
+    if slots_unchanged?
       @logger.info("#{@availabilities.total} slot(s) found for #{@watch_name} — unchanged, skipping notification")
-      return report(nil)
+      return report
     end
 
-    message = format_message(@availabilities)
-    reply_markup = Telegram::ChatService.build_inline_keyboard([booking_url_hash])
-
-    telegram_chat = Telegram::ChatService.new(**chat_params)
-    telegram_chat.send(message, reply_markup: reply_markup)
-
-    @logger.info("#{@availabilities.total} slot(s) found for #{@watch_name} — notification sent")
-
-    report(message)
+    notify!
+    report
   end
 
   private
 
+  def slots_unchanged?
+    return false unless @previous_slots
+
+    @availabilities.slots.map(&:to_s).sort == @previous_slots.sort
+  end
+
+  def notify!
+    message = format_message(@availabilities)
+    reply_markup = Telegram::ChatService.build_inline_keyboard([booking_url_hash])
+    Telegram::ChatService.new(**chat_params).deliver(message, reply_markup: reply_markup)
+    @logger.info("#{@availabilities.total} slot(s) found for #{@watch_name} — notification sent")
+  end
+
   # Builds the result hash returned from {#call}.
   #
   # @return [Hash] with :watch_name, :total, :slots_by_date keys
-  def report(_message)
+  def report
     {
       watch_name: @watch_name,
       total: @availabilities.total,

@@ -16,22 +16,19 @@ module Telegram
       @chat_id = chat_id
     end
 
-    def send(text, parse_mode: 'Markdown', reply_markup: nil)
-      body = {
-        chat_id: chat_id,
-        text: text,
-        parse_mode: parse_mode
-      }
-
-      # Add reply_markup if provided
-      body[:reply_markup] = reply_markup.to_json if reply_markup
-
-      response = HTTParty.post(
+    def deliver(text, parse_mode: 'Markdown', reply_markup: nil)
+      HTTParty.post(
         "https://api.telegram.org/bot#{ENV.fetch('TELEGRAM_BOT_TOKEN')}/sendMessage",
-        body: body
+        body: build_body(text, parse_mode, reply_markup)
       )
+    end
 
-      response.success?
+    private
+
+    def build_body(text, parse_mode, reply_markup)
+      body = { chat_id: chat_id, text: text, parse_mode: parse_mode }
+      body[:reply_markup] = reply_markup.to_json if reply_markup
+      body
     end
 
     class << self
