@@ -47,7 +47,9 @@ class AvailabilityCheckService
   private
 
   # @return [Boolean] true if the current slots are identical to the previous run's slots
+  #   and a forced notification has not been requested via +FORCE_NOTIFY+
   def slots_unchanged?
+    return false if ENV['FORCE_NOTIFY'] == 'true'
     return false unless @previous_slots
 
     @availabilities.slots.map(&:to_s).sort == @previous_slots.sort

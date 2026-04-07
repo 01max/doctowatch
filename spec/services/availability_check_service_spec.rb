@@ -101,6 +101,21 @@ RSpec.describe AvailabilityCheckService do
 
           expect(result).to include(watch_name: 'dentist_paris', total: 2)
         end
+
+        context 'when FORCE_NOTIFY=true' do
+          around do |example|
+            ENV['FORCE_NOTIFY'] = 'true'
+            example.run
+          ensure
+            ENV.delete('FORCE_NOTIFY')
+          end
+
+          it 'sends a notification despite unchanged slots' do
+            service.call
+
+            expect(chat_service).to have_received(:deliver)
+          end
+        end
       end
 
       context 'when slots have changed from previous run' do

@@ -4,6 +4,11 @@ on:
   schedule:
     - cron: "*/30 * * * *"
   workflow_dispatch:
+    inputs:
+      force_notify:
+        description: 'Force notification even if slots are unchanged'
+        type: boolean
+        default: false
 
 jobs:
   check:
@@ -43,6 +48,7 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_DEFAULT_CHAT_ID: ${{ secrets.TELEGRAM_DEFAULT_CHAT_ID }}
+          FORCE_NOTIFY: ${{ inputs.force_notify }}
 
       - name: Upload report
         if: always()
