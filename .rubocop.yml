@@ -1,6 +1,12 @@
 AllCops:
   NewCops: enable
   SuggestExtensions: false
+  Exclude:
+    - 'bin/**/*'
+
+Metrics/BlockLength:
+  Exclude:
+    - 'spec/**/*'
 
 Style/FrozenStringLiteralComment:
   Enabled: true

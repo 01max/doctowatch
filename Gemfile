@@ -12,3 +12,8 @@ group :development do
   gem 'dotenv'
   gem 'rubocop'
 end
+
+group :test do
+  gem 'rspec'
+  gem 'webmock'
+end
