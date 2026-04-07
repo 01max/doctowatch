@@ -13,6 +13,8 @@ on:
 jobs:
   check:
     runs-on: self-hosted
+    permissions:
+      actions: write
 
     steps:
       - name: Checkout
@@ -57,3 +59,14 @@ jobs:
           name: report
           path: tmp/report.json
           retention-days: 7
+
+      - name: Disable workflow after 3 consecutive failures
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          recent=$(gh run list --workflow=check.yml --limit=3 --json conclusion --jq '[.[].conclusion]')
+          if [ "$recent" = '["failure","failure","failure"]' ]; then
+            echo "3 consecutive failures — disabling workflow"
+            gh workflow disable check.yml
+          fi
