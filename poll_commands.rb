@@ -24,8 +24,8 @@ CHECK_WORKFLOW = 'check.yml'
 since_update_id = begin
   JSON.parse(File.read(PREVIOUS_STATE_PATH))['last_update_id']
 rescue StandardError
-  logger.warn("No previous command state at #{PREVIOUS_STATE_PATH} — establishing baseline")
-  nil
+  logger.warn("No previous command state at #{PREVIOUS_STATE_PATH} — processing all pending updates")
+  0
 end
 
 poller = Telegram::CommandPoller.new(since_update_id: since_update_id)
