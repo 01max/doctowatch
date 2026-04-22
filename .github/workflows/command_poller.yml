@@ -35,6 +35,11 @@ jobs:
           if_no_artifact_found: ignore
         continue-on-error: true
 
+      - name: Write config
+        run: echo "$DOCTOWATCH_CONFIG" > config.yml
+        env:
+          DOCTOWATCH_CONFIG: ${{ secrets.DOCTOWATCH_CONFIG }}
+
       - name: Poll for commands
         run: bundle exec ruby poll_commands.rb
         env:

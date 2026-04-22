@@ -13,7 +13,7 @@ module Telegram
   # +offset = last_update_id + 1+ so the same commands are not replayed on the
   # next run.
   class CommandPoller
-    COMMANDS = { '/disable' => :disable, '/enable' => :enable }.freeze
+    COMMANDS = { '/disable' => :disable, '/enable' => :enable, '/config' => :config }.freeze
 
     attr_reader :last_update_id
 

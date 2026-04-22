@@ -44,6 +44,13 @@ RSpec.describe Telegram::CommandPoller do
         expect(poller.last_update_id).to eq 101
       end
 
+      it 'returns :config for /config' do
+        stub_updates([update(update_id: 110, chat: chat_id.to_i, text: '/config')], offset: 101)
+        stub_updates([], offset: 111)
+
+        expect(poller.commands).to eq [:config]
+      end
+
       it 'returns :enable for /enable' do
         stub_updates([update(update_id: 110, chat: chat_id.to_i, text: '/enable')], offset: 101)
         stub_updates([], offset: 111)

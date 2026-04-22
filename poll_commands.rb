@@ -18,6 +18,7 @@ logger.progname = 'doctowatch-commands'
 
 PREVIOUS_STATE_PATH = File.expand_path('tmp/previous/command_state.json', __dir__)
 STATE_PATH = File.expand_path('tmp/command_state.json', __dir__)
+CONFIG_PATH = File.expand_path('config.yml', __dir__)
 CHECK_WORKFLOW = 'check.yml'
 
 since_update_id = begin
@@ -40,6 +41,10 @@ commands.each do |command|
     logger.warn('/enable received — enabling check workflow')
     GithubWorkflowService.new.enable(CHECK_WORKFLOW)
     Telegram::ChatService.new.deliver('Doctowatch: check workflow enabled.')
+  when :config
+    logger.info('/config received — sending current config')
+    body = File.exist?(CONFIG_PATH) ? File.read(CONFIG_PATH) : '(config.yml not found)'
+    Telegram::ChatService.new.deliver("Doctowatch config:\n```\n#{body}\n```")
   end
 end
 

@@ -74,6 +74,7 @@ A dedicated `Poll Telegram Commands` workflow runs every 15 minutes and reacts t
 
 - `/disable` — disables the check workflow
 - `/enable` — re-enables the check workflow
+- `/config` — replies with the current `config.yml`
 
 Only commands received since the previous poll are acted on, so stale messages never trigger a command. Latency is up to 15 minutes.
 
