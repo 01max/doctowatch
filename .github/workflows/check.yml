@@ -51,6 +51,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_DEFAULT_CHAT_ID: ${{ secrets.TELEGRAM_DEFAULT_CHAT_ID }}
           FORCE_NOTIFY: ${{ inputs.force_notify }}
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Upload report
         if: always()

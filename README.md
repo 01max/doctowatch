@@ -68,6 +68,10 @@ bundle exec ruby check.rb
 
 `.env` is loaded automatically outside of CI via dotenv.
 
+## Telegram commands
+
+Send `/disable` from the chat matching `TELEGRAM_DEFAULT_CHAT_ID` and the workflow will disable itself on its next scheduled run (up to 30 min later). Re-enable it from the GitHub Actions UI.
+
 ## GitHub Actions
 
 The workflow runs every 30 minutes on a self-hosted runner (required — Doctolib blocks GitHub-hosted runner IPs). Add three repository secrets:

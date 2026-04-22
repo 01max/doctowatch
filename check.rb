@@ -5,6 +5,9 @@ require 'logger'
 require 'yaml'
 
 require_relative 'services/availability_check_service'
+require_relative 'services/github_workflow_service'
+require_relative 'services/telegram/chat_service'
+require_relative 'services/telegram/command_poller'
 
 # Load .env in development (not in CI)
 unless ENV['CI']
@@ -14,6 +17,13 @@ end
 
 logger = Logger.new($stdout)
 logger.progname = 'doctowatch'
+
+if Telegram::CommandPoller.new.disable_requested?
+  logger.warn('/disable command received — disabling workflow')
+  GithubWorkflowService.new.disable('check.yml')
+  Telegram::ChatService.new.deliver('Doctowatch: workflow disabled via /disable command.')
+  exit 0
+end
 
 config_path = File.expand_path('config.yml', __dir__)
 
