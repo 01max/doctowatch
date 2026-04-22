@@ -13,7 +13,7 @@ module Telegram
   # +offset = last_update_id + 1+ so the same commands are not replayed on the
   # next run.
   class CommandPoller
-    DISABLE_COMMAND = '/disable'
+    COMMANDS = { '/disable' => :disable, '/enable' => :enable }.freeze
 
     attr_reader :last_update_id
 
@@ -28,17 +28,19 @@ module Telegram
       @last_update_id = since_update_id
     end
 
-    # @return [Boolean] true if an authorized +/disable+ command arrived since the previous run
-    def disable_requested?
+    # @return [Array<Symbol>] commands received since the baseline, in the order they were
+    #   first seen, deduplicated. Returns +[]+ on the first run so stale messages don't
+    #   trigger actions.
+    def commands
       updates = fetch_updates
-      return false if updates.empty?
+      return [] if updates.empty?
 
       @last_update_id = updates.last['update_id']
       ack(@last_update_id)
 
-      return false if @since_update_id.nil?
+      return [] if @since_update_id.nil?
 
-      updates.any? { |u| disable_command?(u) }
+      updates.filter_map { |u| detect_command(u) }.uniq
     end
 
     private
@@ -60,13 +62,14 @@ module Telegram
       HTTParty.get(api_url('getUpdates'), query: { offset: last_update_id + 1, timeout: 0 })
     end
 
-    def disable_command?(update)
+    def detect_command(update)
       message = update['message'] || update['channel_post']
-      return false unless message
-      return false unless message.dig('chat', 'id').to_s == @authorized_chat_id
+      return nil unless message
+      return nil unless message.dig('chat', 'id').to_s == @authorized_chat_id
 
       text = message['text'].to_s.strip.downcase
-      text == DISABLE_COMMAND || text.start_with?("#{DISABLE_COMMAND}@")
+      keyword = text.split('@', 2).first
+      COMMANDS[keyword]
     end
 
     def api_url(method)

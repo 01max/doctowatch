@@ -18,8 +18,22 @@ class GithubWorkflowService
   # @param workflow_file [String] workflow filename, e.g. +"check.yml"+
   # @return [HTTParty::Response]
   def disable(workflow_file)
+    toggle(workflow_file, 'disable')
+  end
+
+  # Re-enables a previously disabled workflow.
+  #
+  # @param workflow_file [String] workflow filename, e.g. +"check.yml"+
+  # @return [HTTParty::Response]
+  def enable(workflow_file)
+    toggle(workflow_file, 'enable')
+  end
+
+  private
+
+  def toggle(workflow_file, action)
     HTTParty.put(
-      "https://api.github.com/repos/#{@repository}/actions/workflows/#{workflow_file}/disable",
+      "https://api.github.com/repos/#{@repository}/actions/workflows/#{workflow_file}/#{action}",
       headers: {
         'Authorization' => "Bearer #{@token}",
         'Accept' => 'application/vnd.github+json',

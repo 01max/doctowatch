@@ -70,7 +70,12 @@ bundle exec ruby check.rb
 
 ## Telegram commands
 
-Send `/disable` from the chat matching `TELEGRAM_DEFAULT_CHAT_ID` and the workflow will disable itself on its next scheduled run (up to 30 min later). Re-enable it from the GitHub Actions UI.
+A dedicated `Poll Telegram Commands` workflow runs every 15 minutes and reacts to commands sent from the chat matching `TELEGRAM_DEFAULT_CHAT_ID`:
+
+- `/disable` — disables the check workflow
+- `/enable` — re-enables the check workflow
+
+Only commands received since the previous poll are acted on, so stale messages never trigger a command. Latency is up to 15 minutes.
 
 ## GitHub Actions
 

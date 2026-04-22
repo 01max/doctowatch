@@ -12,15 +12,12 @@ module ReportWriter
   # Creates +tmp/+ if it does not exist.
   #
   # @param results [Array<Hash>] collected return values from {AvailabilityCheckService#call}
-  # @param last_telegram_update_id [Integer, nil] highest Telegram +update_id+ seen this run,
-  #   persisted so the next run only processes newer commands
   # @return [void]
-  def self.write(results, last_telegram_update_id: nil)
+  def self.write(results)
     FileUtils.mkdir_p(File.dirname(REPORT_PATH))
 
     report = {
       generated_at: Time.now.utc.iso8601,
-      last_telegram_update_id: last_telegram_update_id,
       watches: results.map { |r| serialize(r) }
     }
 

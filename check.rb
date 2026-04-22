@@ -5,9 +5,6 @@ require 'logger'
 require 'yaml'
 
 require_relative 'services/availability_check_service'
-require_relative 'services/github_workflow_service'
-require_relative 'services/telegram/chat_service'
-require_relative 'services/telegram/command_poller'
 
 # Load .env in development (not in CI)
 unless ENV['CI']
@@ -17,25 +14,6 @@ end
 
 logger = Logger.new($stdout)
 logger.progname = 'doctowatch'
-
-previous_report_path = File.expand_path('tmp/previous/report.json', __dir__)
-previous_report = begin
-  JSON.parse(File.read(previous_report_path))
-rescue StandardError
-  logger.warn("Previous report not found or invalid at #{previous_report_path}, starting fresh")
-  nil
-end
-
-previous_slots = (previous_report&.dig('watches') || []).to_h { |w| [w['watch'], w['slots_by_date'] || []] }
-previous_update_id = previous_report&.dig('last_telegram_update_id')
-
-poller = Telegram::CommandPoller.new(since_update_id: previous_update_id)
-if poller.disable_requested?
-  logger.warn('/disable command received — disabling workflow')
-  GithubWorkflowService.new.disable('check.yml')
-  Telegram::ChatService.new.deliver('Doctowatch: workflow disabled via /disable command.')
-  exit 0
-end
 
 config_path = File.expand_path('config.yml', __dir__)
 
@@ -51,6 +29,15 @@ if config.nil? || config.empty?
   exit 1
 end
 
+previous_report_path = File.expand_path('tmp/previous/report.json', __dir__)
+previous_slots = begin
+  data = JSON.parse(File.read(previous_report_path))
+  data['watches'].to_h { |w| [w['watch'], w['slots_by_date'] || []] }
+rescue StandardError
+  logger.warn("Previous report not found or invalid at #{previous_report_path}, starting fresh")
+  {}
+end
+
 success = true
 results = []
 
@@ -63,6 +50,6 @@ rescue StandardError => e
 end
 
 require_relative 'services/report_writer'
-ReportWriter.write(results, last_telegram_update_id: poller.last_update_id)
+ReportWriter.write(results)
 
 exit(success ? 0 : 1)
