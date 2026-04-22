@@ -17,69 +17,80 @@ RSpec.describe Telegram::CommandPoller do
     { 'update_id' => update_id, 'message' => { 'chat' => { 'id' => chat }, 'text' => text } }
   end
 
+  def stub_updates(updates, offset: nil)
+    query = offset ? { offset: offset.to_s, timeout: '0' } : { timeout: '0' }
+    stub_request(:get, api_url)
+      .with(query: query)
+      .to_return(status: 200, body: { ok: true, result: updates }.to_json)
+  end
+
   describe '#disable_requested?' do
-    subject(:poller) { described_class.new }
+    context 'with a baseline update_id from the previous run' do
+      subject(:poller) { described_class.new(since_update_id: 100) }
 
-    it 'returns false when there are no pending updates' do
-      stub_request(:get, api_url)
-        .with(query: { timeout: '0' })
-        .to_return(status: 200, body: { ok: true, result: [] }.to_json)
+      it 'queries Telegram with offset = since + 1' do
+        stub_updates([], offset: 101)
 
-      expect(poller.disable_requested?).to be false
+        expect(poller.disable_requested?).to be false
+      end
+
+      it 'returns true when /disable arrives from the authorized chat and acks' do
+        stub_updates([update(update_id: 101, chat: chat_id.to_i, text: '/disable')], offset: 101)
+        ack = stub_updates([], offset: 102)
+
+        expect(poller.disable_requested?).to be true
+        expect(ack).to have_been_requested
+        expect(poller.last_update_id).to eq 101
+      end
+
+      it 'accepts /disable@botname' do
+        stub_updates([update(update_id: 7, chat: chat_id.to_i, text: '/disable@doctowatch_bot')], offset: 101)
+        stub_updates([], offset: 8)
+
+        expect(poller.disable_requested?).to be true
+      end
+
+      it 'ignores /disable from a different chat but still acks' do
+        stub_updates([update(update_id: 150, chat: 999, text: '/disable')], offset: 101)
+        ack = stub_updates([], offset: 151)
+
+        expect(poller.disable_requested?).to be false
+        expect(ack).to have_been_requested
+      end
+
+      it 'ignores unrelated messages' do
+        stub_updates([update(update_id: 150, chat: chat_id.to_i, text: 'hello')], offset: 101)
+        stub_updates([], offset: 151)
+
+        expect(poller.disable_requested?).to be false
+      end
+
+      it 'retains the baseline update_id when no updates are returned' do
+        stub_updates([], offset: 101)
+
+        poller.disable_requested?
+        expect(poller.last_update_id).to eq 100
+      end
     end
 
-    it 'returns true when the authorized chat sent /disable and acks the update' do
-      stub_request(:get, api_url)
-        .with(query: { timeout: '0' })
-        .to_return(status: 200, body: {
-          ok: true,
-          result: [update(update_id: 42, chat: chat_id.to_i, text: '/disable')]
-        }.to_json)
-      ack = stub_request(:get, api_url).with(query: { offset: '43', timeout: '0' })
-                                       .to_return(status: 200, body: { ok: true, result: [] }.to_json)
+    context 'on the first run (no baseline)' do
+      subject(:poller) { described_class.new(since_update_id: nil) }
 
-      expect(poller.disable_requested?).to be true
-      expect(ack).to have_been_requested
-    end
+      it 'does not act on historical /disable messages and acks to establish a baseline' do
+        stub_updates([update(update_id: 42, chat: chat_id.to_i, text: '/disable')])
+        ack = stub_updates([], offset: 43)
 
-    it 'accepts /disable@botname' do
-      stub_request(:get, api_url)
-        .with(query: { timeout: '0' })
-        .to_return(status: 200, body: {
-          ok: true,
-          result: [update(update_id: 7, chat: chat_id.to_i, text: '/disable@doctowatch_bot')]
-        }.to_json)
-      stub_request(:get, api_url).with(query: { offset: '8', timeout: '0' })
-                                 .to_return(status: 200, body: { ok: true, result: [] }.to_json)
+        expect(poller.disable_requested?).to be false
+        expect(ack).to have_been_requested
+        expect(poller.last_update_id).to eq 42
+      end
 
-      expect(poller.disable_requested?).to be true
-    end
+      it 'leaves last_update_id nil when no updates are pending' do
+        stub_updates([])
 
-    it 'ignores /disable from a different chat but still acks' do
-      stub_request(:get, api_url)
-        .with(query: { timeout: '0' })
-        .to_return(status: 200, body: {
-          ok: true,
-          result: [update(update_id: 5, chat: 999, text: '/disable')]
-        }.to_json)
-      ack = stub_request(:get, api_url).with(query: { offset: '6', timeout: '0' })
-                                       .to_return(status: 200, body: { ok: true, result: [] }.to_json)
-
-      expect(poller.disable_requested?).to be false
-      expect(ack).to have_been_requested
-    end
-
-    it 'ignores unrelated messages' do
-      stub_request(:get, api_url)
-        .with(query: { timeout: '0' })
-        .to_return(status: 200, body: {
-          ok: true,
-          result: [update(update_id: 1, chat: chat_id.to_i, text: 'hello')]
-        }.to_json)
-      stub_request(:get, api_url).with(query: { offset: '2', timeout: '0' })
-                                 .to_return(status: 200, body: { ok: true, result: [] }.to_json)
-
-      expect(poller.disable_requested?).to be false
+        poller.disable_requested?
+        expect(poller.last_update_id).to be_nil
+      end
     end
 
     it 'returns false when the API call fails' do
@@ -87,7 +98,7 @@ RSpec.describe Telegram::CommandPoller do
         .with(query: { timeout: '0' })
         .to_return(status: 500, body: '')
 
-      expect(poller.disable_requested?).to be false
+      expect(described_class.new.disable_requested?).to be false
     end
   end
 end

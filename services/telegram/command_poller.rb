@@ -15,25 +15,39 @@ module Telegram
   class CommandPoller
     DISABLE_COMMAND = '/disable'
 
+    attr_reader :last_update_id
+
     # @param authorized_chat_id [String] only messages from this chat trigger commands
-    def initialize(authorized_chat_id: ENV.fetch('TELEGRAM_DEFAULT_CHAT_ID'))
+    # @param since_update_id [Integer, nil] the highest +update_id+ seen on the previous run;
+    #   only messages strictly after this id are considered. When +nil+, the poller establishes
+    #   a baseline by acknowledging any pending updates without acting on them — this prevents
+    #   stale messages (sent before this feature was deployed) from triggering commands.
+    def initialize(authorized_chat_id: ENV.fetch('TELEGRAM_DEFAULT_CHAT_ID'), since_update_id: nil)
       @authorized_chat_id = authorized_chat_id.to_s
+      @since_update_id = since_update_id
+      @last_update_id = since_update_id
     end
 
-    # @return [Boolean] true if an authorized +/disable+ command is pending
+    # @return [Boolean] true if an authorized +/disable+ command arrived since the previous run
     def disable_requested?
       updates = fetch_updates
       return false if updates.empty?
 
-      requested = updates.any? { |u| disable_command?(u) }
-      ack(updates.last['update_id'])
-      requested
+      @last_update_id = updates.last['update_id']
+      ack(@last_update_id)
+
+      return false if @since_update_id.nil?
+
+      updates.any? { |u| disable_command?(u) }
     end
 
     private
 
     def fetch_updates
-      response = HTTParty.get(api_url('getUpdates'), query: { timeout: 0 })
+      query = { timeout: 0 }
+      query[:offset] = @since_update_id + 1 if @since_update_id
+
+      response = HTTParty.get(api_url('getUpdates'), query: query)
       return [] unless response.success?
 
       body = JSON.parse(response.body)
