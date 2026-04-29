@@ -33,7 +33,7 @@ jobs:
           bundle install
 
       - name: Download previous report
-        uses: dawidd6/action-download-artifact@v9
+        uses: dawidd6/action-download-artifact@v21
         with:
           name: report
           path: tmp/previous

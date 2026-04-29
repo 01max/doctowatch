@@ -28,7 +28,7 @@ jobs:
           bundle install
 
       - name: Download previous state
-        uses: dawidd6/action-download-artifact@v9
+        uses: dawidd6/action-download-artifact@v21
         with:
           name: command-state
           path: tmp/previous
