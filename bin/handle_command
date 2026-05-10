@@ -14,7 +14,7 @@ require_relative '../services/telegram/chat_service'
 require_relative '../services/github_workflow_service'
 
 CHECK_WORKFLOW = 'check.yml'
-CONFIG_PATH = File.expand_path('config.yml', __dir__)
+CONFIG_PATH = File.expand_path('../config.yml', __dir__)
 
 chat = Telegram::ChatService.new(chat_id: chat_id)
 logger = Logger.new($stdout)
