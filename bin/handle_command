@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Called by the telegram-gh-action-dispatcher action (handler.sh).
+# Receives 4 positional arguments:
+#   bin/handle_command <command> <chat_id> <args> <bot_token>
+
+require 'logger'
+
+command, chat_id, args, bot_token = ARGV
+
+require 'bundler/setup'
+require_relative '../services/telegram/chat_service'
+require_relative '../services/github_workflow_service'
+
+CHECK_WORKFLOW = 'check.yml'
+CONFIG_PATH = File.expand_path('config.yml', __dir__)
+
+chat = Telegram::ChatService.new(chat_id: chat_id)
+logger = Logger.new($stdout)
+logger.progname = 'handle_command'
+
+case command
+when 'disable'
+  logger.warn('/disable received — disabling check workflow')
+  GithubWorkflowService.new.disable(CHECK_WORKFLOW)
+  chat.deliver('Doctowatch: check workflow disabled.')
+when 'enable'
+  logger.warn('/enable received — enabling check workflow')
+  GithubWorkflowService.new.enable(CHECK_WORKFLOW)
+  chat.deliver('Doctowatch: check workflow enabled.')
+when 'config'
+  logger.info('/config received — sending current config')
+  body = File.exist?(CONFIG_PATH) ? File.read(CONFIG_PATH) : '(config.yml not found)'
+  chat.deliver("Doctowatch config:\n```\n#{body}\n```")
+else
+  logger.warn("Unknown command: #{command}")
+  chat.deliver("Unknown command: `#{command}`.")
+end

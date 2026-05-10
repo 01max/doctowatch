@@ -1,0 +1,43 @@
+name: Telegram User Command
+
+on:
+  repository_dispatch:
+    types: [user-command]
+
+jobs:
+  handle:
+    runs-on: self-hosted
+    permissions:
+      actions: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Ruby and dependencies
+        run: |
+          git clone https://github.com/rbenv/rbenv.git ~/.rbenv || true
+          git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build || true
+          echo "$HOME/.rbenv/bin" >> $GITHUB_PATH
+          echo "$HOME/.rbenv/shims" >> $GITHUB_PATH
+          export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
+          rbenv install -s 3.2.0
+          rbenv global 3.2.0
+          gem install bundler
+          bundle install
+
+      - name: Write config
+        run: echo "$DOCTOWATCH_CONFIG" > config.yml
+        env:
+          DOCTOWATCH_CONFIG: ${{ secrets.DOCTOWATCH_CONFIG }}
+
+      - name: Handle Command
+        uses: 01max/telegram-gh-action-dispatcher@main
+        with:
+          command: ${{ github.event.client_payload.command }}
+          chat_id: ${{ github.event.client_payload.chat_id }}
+          args: ${{ github.event.client_payload.args }}
+          bot_token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
