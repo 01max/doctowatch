@@ -29,6 +29,22 @@ class GithubWorkflowService
     toggle(workflow_file, 'enable')
   end
 
+  # Returns true if the workflow is currently active (not disabled).
+  #
+  # @param workflow_file [String] workflow filename, e.g. +"check.yml"+
+  # @return [Boolean]
+  def enabled?(workflow_file)
+    response = HTTParty.get(
+      "https://api.github.com/repos/#{@repository}/actions/workflows/#{workflow_file}",
+      headers: {
+        'Authorization' => "Bearer #{@token}",
+        'Accept' => 'application/vnd.github+json',
+        'X-GitHub-Api-Version' => '2022-11-28'
+      }
+    )
+    response.parsed_response['state'] == 'active'
+  end
+
   private
 
   def toggle(workflow_file, action)

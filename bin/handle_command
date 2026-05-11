@@ -32,7 +32,8 @@ when 'enable'
 when 'config'
   logger.info('/config received — sending current config')
   body = File.exist?(CONFIG_PATH) ? File.read(CONFIG_PATH) : '(config.yml not found)'
-  chat.deliver("Doctowatch config:\n```\n#{body}\n```")
+  workflow_status = GithubWorkflowService.new.enabled?(CHECK_WORKFLOW) ? 'enabled' : 'disabled'
+  chat.deliver("Doctowatch config (check workflow: #{workflow_status}):\n```\n#{body}\n```")
 else
   logger.warn("Unknown command: #{command}")
   chat.deliver("Unknown command: `#{command}`.")
