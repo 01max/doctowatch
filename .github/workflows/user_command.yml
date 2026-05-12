@@ -32,7 +32,7 @@ jobs:
           DOCTOWATCH_CONFIG: ${{ secrets.DOCTOWATCH_CONFIG }}
 
       - name: Handle Command
-        uses: 01max/telegram-gh-action-dispatcher@v2
+        uses: 01max/telegram-gh-action-dispatcher@v3
         with:
           command: ${{ github.event.client_payload.command }}
           chat_id: ${{ github.event.client_payload.chat_id }}
