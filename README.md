@@ -4,6 +4,10 @@ Periodically checks [Doctolib](https://www.doctolib.fr) for appointment availabi
 
 Uses the [`toc_doc`](https://github.com/01max/toc_doc) gem to query the Doctolib API.
 
+## Disclaimer
+
+Using this software is not aligned with Doctolib's Terms of Service. This project is provided for research and entertainment purposes only. You are responsible for ensuring that any use complies with applicable laws, policies, and third-party terms.
+
 ## How it works
 
 1. Reads `config.yml`, which defines one or more watches (each top-level key is a watch)
@@ -101,4 +105,3 @@ The workflow requires a self-hosted runner with a residential IP. The recommende
 | `RUNNER_NAME` | Any name |
 | `LABELS` | `self-hosted` |
 | `DISABLE_AUTOMATIC_DEREGISTRATION` | `true` |
-
