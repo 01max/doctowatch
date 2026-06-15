@@ -74,34 +74,40 @@ bundle exec ruby check.rb
 
 ## Telegram commands
 
-A dedicated `Poll Telegram Commands` workflow runs every 15 minutes and reacts to commands sent from the chat matching `TELEGRAM_DEFAULT_CHAT_ID`:
+Telegram sends webhook requests to [`telegram-gh-action-dispatcher`](https://github.com/01max/telegram-gh-action-dispatcher), a Cloudflare Worker that validates the chat and triggers this repository's `Telegram User Command` workflow via `repository_dispatch`.
 
 - `/disable` — disables the check workflow
 - `/enable` — re-enables the check workflow
 - `/config` — replies with the current `config.yml`
 
-Only commands received since the previous poll are acted on, so stale messages never trigger a command. Latency is up to 15 minutes.
+The command workflow runs on GitHub-hosted runners because it only calls GitHub and Telegram APIs. The Doctolib availability check remains on the self-hosted runner, so `/enable` can still work even if the Unraid runner has gone idle or the check workflow is disabled.
 
 ## GitHub Actions
 
-The workflow runs every 30 minutes on a self-hosted runner (required — Doctolib blocks GitHub-hosted runner IPs). Add three repository secrets:
+The availability workflow runs every 30 minutes on a self-hosted runner (required — Doctolib blocks GitHub-hosted runner IPs). The command workflow is triggered by the Cloudflare Worker and runs on `ubuntu-latest`. Add three repository secrets:
 
 | Secret | Description |
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token |
-| `TELEGRAM_CHAT_ID` | Telegram chat ID to notify |
+| `TELEGRAM_DEFAULT_CHAT_ID` | Telegram chat ID to notify |
 | `DOCTOWATCH_CONFIG` | Full contents of your `config.yml` |
 
 > `config.yml` is gitignored. The `DOCTOWATCH_CONFIG` secret is written to the file at runtime before `check.rb` runs.
 
 ### Self-hosted runner
 
-The workflow requires a self-hosted runner with a residential IP. The recommended setup is a Docker container using [`myoung34/github-runner`](https://github.com/myoung34/docker-github-actions-runner) with these env vars:
+The availability workflow requires a self-hosted runner with a residential IP. The recommended setup is a Docker container using [`myoung34/github-runner`](https://github.com/myoung34/docker-github-actions-runner) with an Unraid restart policy of `unless-stopped` or `always`.
+
+Use a long-lived GitHub token and let the container request short-lived runner registration tokens when it starts. Do not use the one-time `RUNNER_TOKEN` from Settings > Actions > Runners for an always-on container; that token is short-lived and will fail after a later restart.
 
 | Variable | Value |
 |---|---|
 | `REPO_URL` | `https://github.com/<you>/doctowatch` to __your__ fork|
-| `RUNNER_TOKEN` | Token from repo Settings > Actions > Runners |
+| `RUNNER_SCOPE` | `repo` |
+| `ACCESS_TOKEN` | Fine-grained GitHub PAT that can administer this repository's self-hosted runners |
 | `RUNNER_NAME` | Any name |
 | `LABELS` | `self-hosted` |
 | `DISABLE_AUTOMATIC_DEREGISTRATION` | `true` |
+| `CONFIGURED_ACTIONS_RUNNER_FILES_DIR` | Persistent path such as `/runner-data` to avoid re-registering on every start |
+
+Persist `CONFIGURED_ACTIONS_RUNNER_FILES_DIR` to appdata, for example `/mnt/user/appdata/github-runner/doctowatch:/runner-data`, so Unraid restarts do not erase the runner configuration.
