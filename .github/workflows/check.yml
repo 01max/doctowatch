@@ -22,15 +22,18 @@ jobs:
 
       - name: Install Ruby and dependencies
         run: |
+          ruby_version="$(cat .ruby-version)"
           git clone https://github.com/rbenv/rbenv.git ~/.rbenv || true
-          git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build || true
+          git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build || git -C ~/.rbenv/plugins/ruby-build pull --ff-only
           echo "$HOME/.rbenv/bin" >> $GITHUB_PATH
           echo "$HOME/.rbenv/shims" >> $GITHUB_PATH
           export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
-          rbenv install -s 3.2.0
-          rbenv global 3.2.0
-          gem install bundler
-          bundle install
+          rbenv install -s "$ruby_version"
+          rbenv global "$ruby_version"
+          bundler_version="$(awk '/BUNDLED WITH/{getline; print $1}' Gemfile.lock)"
+          gem install bundler -v "$bundler_version"
+          rbenv rehash
+          bundle _${bundler_version}_ install
 
       - name: Download previous report
         uses: dawidd6/action-download-artifact@v21
