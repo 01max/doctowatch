@@ -1,10 +1,10 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'bundler/setup'
 require 'logger'
 require 'yaml'
 
-require 'bundler/setup'
 require_relative '../services/availability_check_service'
 
 # You can add fixtures and/or initialization code here to make experimenting

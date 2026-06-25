@@ -1,15 +1,14 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+require 'bundler/setup'
+require 'logger'
+
 # Called by the telegram-gh-action-dispatcher action (handler.sh).
 # Receives 4 positional arguments:
 #   bin/handle_command <command> <chat_id> <args> <bot_token>
-
-require 'logger'
-
 command, chat_id, args, bot_token = ARGV
 
-require 'bundler/setup'
 require_relative '../services/telegram/chat_service'
 require_relative '../services/github_workflow_service'
 
