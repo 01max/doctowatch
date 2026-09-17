@@ -3,6 +3,8 @@
 source 'https://rubygems.org'
 
 gem 'httparty'
+# HTTParty 0.24.2 passes the quirks_mode option removed by JSON 3.
+gem 'json', '< 3'
 gem 'toc_doc'
 
 group :development do
