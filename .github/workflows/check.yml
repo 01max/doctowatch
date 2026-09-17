@@ -36,7 +36,7 @@ jobs:
           bundle _${bundler_version}_ install
 
       - name: Download previous report
-        uses: dawidd6/action-download-artifact@v21
+        uses: dawidd6/action-download-artifact@v24
         with:
           name: report
           path: tmp/previous
