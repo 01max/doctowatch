@@ -35,4 +35,14 @@ RSpec.describe GithubWorkflowService do
       expect(stub).to have_been_requested
     end
   end
+
+  describe '#enabled?' do
+    it 'parses the workflow state returned by the GitHub API' do
+      stub_request(:get, 'https://api.github.com/repos/owner/repo/actions/workflows/check.yml')
+        .with(headers: headers)
+        .to_return(status: 200, body: '{"state":"active"}', headers: { 'Content-Type' => 'application/json' })
+
+      expect(service.enabled?('check.yml')).to be(true)
+    end
+  end
 end
