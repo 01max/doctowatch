@@ -1,0 +1,39 @@
+name: Build Alwaysdata Ruby bundle
+
+on:
+  push:
+    branches:
+      - codex/fix-json3-httparty
+    paths:
+      - Gemfile
+      - Gemfile.lock
+      - .github/workflows/build-alwaysdata-bundle.yml
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build production gems for Debian x86_64
+        run: |
+          docker run --rm --platform linux/amd64 \
+            --volume "$PWD:/app" --workdir /app \
+            ruby:3.3.12-bookworm bash -euc '
+              gem install bundler -v 2.6.7 --no-document
+              BUNDLE_PATH=vendor/bundle BUNDLE_WITHOUT=development:test bundle _2.6.7_ install --jobs 2
+              BUNDLE_PATH=vendor/bundle BUNDLE_WITHOUT=development:test bundle _2.6.7_ check
+              BUNDLE_PATH=vendor/bundle BUNDLE_WITHOUT=development:test bundle _2.6.7_ exec ruby -e "require \"bigdecimal\"; require \"json\"; require \"httparty\"; require \"toc_doc\""
+            '
+          tar -czf alwaysdata-bundle.tar.gz -C vendor bundle
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: alwaysdata-bundle
+          path: alwaysdata-bundle.tar.gz
+          retention-days: 7
