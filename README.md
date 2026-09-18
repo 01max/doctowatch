@@ -1,6 +1,6 @@
 # Doctowatch
 
-Periodically checks [Doctolib](https://www.doctolib.fr) for appointment availability and sends a Telegram notification when slots are found or change. Runs as a GitHub Actions cron job every 30 minutes on a self-hosted runner.
+Periodically checks [Doctolib](https://www.doctolib.fr) for appointment availability and sends a Telegram notification when slots are found or change. GitHub Actions schedules the check every 30 minutes; the Ruby check currently runs on alwaysdata.
 
 Uses the [`toc_doc`](https://github.com/01max/toc_doc) gem to query the Doctolib API.
 
