@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - codex/alwaysdata-ssh-check
     paths:
       - Gemfile
       - Gemfile.lock
