@@ -1,0 +1,31 @@
+name: Alwaysdata SSH smoke test
+
+on:
+  push:
+    branches:
+      - codex/alwaysdata-ssh-check
+    paths:
+      - .github/workflows/alwaysdata-smoke.yml
+
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify GitHub can use the SSH key and Ruby bundle
+        env:
+          ALWAYSDATA_SSH_PRIVATE_KEY: ${{ secrets.ALWAYSDATA_SSH_PRIVATE_KEY }}
+        run: |
+          test -n "$ALWAYSDATA_SSH_PRIVATE_KEY"
+          printf '%s\n' "$ALWAYSDATA_SSH_PRIVATE_KEY" > "$RUNNER_TEMP/alwaysdata_key"
+          chmod 600 "$RUNNER_TEMP/alwaysdata_key"
+          ssh -i "$RUNNER_TEMP/alwaysdata_key" \
+            -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile=.github/ssh/alwaysdata_known_hosts \
+            doctowatch@ssh-doctowatch.alwaysdata.net \
+            'cd /home/doctowatch/doctowatch && bundle _2.6.7_ exec ruby -e '\''require "bigdecimal"; require "json"; require "httparty"; require "toc_doc"; puts "OK"'\'''
