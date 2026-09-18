@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - codex/fix-json3-httparty
     paths:
       - Gemfile
       - Gemfile.lock
