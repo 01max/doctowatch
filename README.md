@@ -1,6 +1,6 @@
 # Doctowatch
 
-Periodically checks [Doctolib](https://www.doctolib.fr) for appointment availability and sends a Telegram notification when slots are found or change. Runs as a GitHub Actions cron job every 30 minutes on a self-hosted runner.
+Periodically checks [Doctolib](https://www.doctolib.fr) for appointment availability and sends a Telegram notification when slots are found or change. GitHub Actions schedules the check every 30 minutes; the Ruby check currently runs on alwaysdata.
 
 Uses the [`toc_doc`](https://github.com/01max/toc_doc) gem to query the Doctolib API.
 
@@ -80,23 +80,30 @@ Telegram sends webhook requests to [`telegram-gh-action-dispatcher`](https://git
 - `/enable` — re-enables the check workflow
 - `/config` — replies with the current `config.yml`
 
-The command workflow runs on GitHub-hosted runners because it only calls GitHub and Telegram APIs. The Doctolib availability check remains on the self-hosted runner, so `/enable` can still work even if the Unraid runner has gone idle or the check workflow is disabled.
+The command workflow runs on GitHub-hosted runners. The check workflow also starts on a GitHub-hosted runner, but runs the Doctolib request over SSH on alwaysdata. `/enable` and `/disable` continue to control the GitHub check workflow.
 
 ## GitHub Actions
 
-The availability workflow runs every 30 minutes on a self-hosted runner (required — Doctolib blocks GitHub-hosted runner IPs). The command workflow is triggered by the Cloudflare Worker and runs on `ubuntu-latest`. Add three repository secrets:
+The availability workflow runs every 30 minutes. GitHub schedules the job and stores the report artifact; alwaysdata runs the Ruby check so the Doctolib request uses its IP. The command workflow is triggered by the Cloudflare Worker. Configure these repository secrets:
 
 | Secret | Description |
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | Telegram bot token |
 | `TELEGRAM_DEFAULT_CHAT_ID` | Telegram chat ID to notify |
 | `DOCTOWATCH_CONFIG` | Full contents of your `config.yml` |
+| `ALWAYSDATA_SSH_PRIVATE_KEY` | Private half of a dedicated SSH key whose public half is authorized for the `doctowatch` SSH user |
 
-> `config.yml` is gitignored. The `DOCTOWATCH_CONFIG` secret is written to the file at runtime before `check.rb` runs.
+> `config.yml` is gitignored. The check workflow copies it and the Telegram credentials to the alwaysdata account for each run. The temporary credentials file is deleted after the check; access to the account must be limited to trusted repository workflows.
 
-### Self-hosted runner
+### Temporary alwaysdata runner
 
-The availability workflow requires a self-hosted runner with a residential IP. The recommended setup is a Docker container using [`myoung34/github-runner`](https://github.com/myoung34/docker-github-actions-runner) with an Unraid restart policy of `unless-stopped` or `always`.
+Keep the repository at `/home/doctowatch/doctowatch` on alwaysdata, with production gems installed in `vendor/bundle`. Set `bundle _2.6.7_ config set --local path vendor/bundle` there. Ruby's `json` and `bigdecimal` versions are pinned to those shipped with alwaysdata's Ruby 3.3; this avoids compiling native gems within the free plan's memory limit. Run `bundle _2.6.7_ check` and verify that the gems load before enabling the workflow. The `Build Alwaysdata Ruby bundle` workflow can supply the remaining gems, but native extensions compiled against GitHub's Ruby cannot be loaded by alwaysdata's statically linked Ruby.
+
+Add the dedicated public SSH key to `/home/doctowatch/.ssh/authorized_keys` with permissions `700` on `.ssh` and `600` on `authorized_keys`. The pinned host key in `.github/ssh/alwaysdata_known_hosts` should match the fingerprint shown in alwaysdata's **Remote access > SSH/SFTP** page. GitHub sends the current config and previous report to the server, runs `check.rb`, then retrieves `tmp/report.json` for the artifact. The Ruby dependencies and check code on the server must be updated when the repository changes.
+
+### Returning to the self-hosted runner
+
+When restoring the residential runner, switch the check workflow back to `runs-on: self-hosted` and run the Ruby check locally there. The previous setup used a Docker container with [`myoung34/github-runner`](https://github.com/myoung34/docker-github-actions-runner) and an Unraid restart policy of `unless-stopped` or `always`.
 
 Use a long-lived GitHub token and let the container request short-lived runner registration tokens when it starts. Do not use the one-time `RUNNER_TOKEN` from Settings > Actions > Runners for an always-on container; that token is short-lived and will fail after a later restart.
 
