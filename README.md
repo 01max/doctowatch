@@ -97,7 +97,7 @@ The availability workflow runs every 30 minutes. GitHub schedules the job and st
 
 ### Temporary alwaysdata runner
 
-Keep the repository at `/home/doctowatch/doctowatch` on alwaysdata, with production gems installed in `vendor/bundle`. Set `bundle _2.6.7_ config set --local path vendor/bundle` there. Run `bundle _2.6.7_ check` and verify that the native gems load before enabling the workflow. The `Build Alwaysdata Ruby bundle` workflow builds Linux gems on GitHub if they cannot be compiled within the alwaysdata memory limit.
+Keep the repository at `/home/doctowatch/doctowatch` on alwaysdata, with production gems installed in `vendor/bundle`. Set `bundle _2.6.7_ config set --local path vendor/bundle` there. Ruby's `json` and `bigdecimal` versions are pinned to those shipped with alwaysdata's Ruby 3.3; this avoids compiling native gems within the free plan's memory limit. Run `bundle _2.6.7_ check` and verify that the gems load before enabling the workflow. The `Build Alwaysdata Ruby bundle` workflow can supply the remaining gems, but native extensions compiled against GitHub's Ruby cannot be loaded by alwaysdata's statically linked Ruby.
 
 Add the dedicated public SSH key to `/home/doctowatch/.ssh/authorized_keys` with permissions `700` on `.ssh` and `600` on `authorized_keys`. The pinned host key in `.github/ssh/alwaysdata_known_hosts` should match the fingerprint shown in alwaysdata's **Remote access > SSH/SFTP** page. GitHub sends the current config and previous report to the server, runs `check.rb`, then retrieves `tmp/report.json` for the artifact. The Ruby dependencies and check code on the server must be updated when the repository changes.
 
