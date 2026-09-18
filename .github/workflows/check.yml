@@ -12,28 +12,18 @@ on:
 
 jobs:
   check:
-    runs-on: self-hosted
+    runs-on: ubuntu-24.04
     permissions:
       actions: write
+      contents: read
+
+    concurrency:
+      group: doctowatch-check
+      cancel-in-progress: false
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
-
-      - name: Install Ruby and dependencies
-        run: |
-          ruby_version="$(cat .ruby-version)"
-          git clone https://github.com/rbenv/rbenv.git ~/.rbenv || true
-          git clone https://github.com/rbenv/ruby-build.git ~/.rbenv/plugins/ruby-build || git -C ~/.rbenv/plugins/ruby-build pull --ff-only
-          echo "$HOME/.rbenv/bin" >> $GITHUB_PATH
-          echo "$HOME/.rbenv/shims" >> $GITHUB_PATH
-          export PATH="$HOME/.rbenv/bin:$HOME/.rbenv/shims:$PATH"
-          rbenv install -s "$ruby_version"
-          rbenv global "$ruby_version"
-          bundler_version="$(awk '/BUNDLED WITH/{getline; print $1}' Gemfile.lock)"
-          gem install bundler -v "$bundler_version"
-          rbenv rehash
-          bundle _${bundler_version}_ install
 
       - name: Download previous report
         uses: dawidd6/action-download-artifact@v24
@@ -43,18 +33,59 @@ jobs:
           if_no_artifact_found: ignore
         continue-on-error: true
 
-      - name: Write config
-        run: echo "$DOCTOWATCH_CONFIG" > config.yml
+      - name: Prepare check inputs
         env:
           DOCTOWATCH_CONFIG: ${{ secrets.DOCTOWATCH_CONFIG }}
-
-      - name: Run availability check
-        run: bundle exec ruby check.rb
-        env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_DEFAULT_CHAT_ID: ${{ secrets.TELEGRAM_DEFAULT_CHAT_ID }}
           FORCE_NOTIFY: ${{ inputs.force_notify }}
-          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          umask 077
+          printf '%s\n' "$DOCTOWATCH_CONFIG" > config.yml
+          mkdir -p tmp/previous
+          if [ ! -f tmp/previous/report.json ]; then
+            printf '{"watches":[]}\n' > tmp/previous/report.json
+          fi
+          python3 - <<'PY'
+          import os
+          import shlex
+
+          with open('tmp/.github-check-env', 'w', encoding='utf-8') as output:
+              for name in ('TELEGRAM_BOT_TOKEN', 'TELEGRAM_DEFAULT_CHAT_ID', 'FORCE_NOTIFY'):
+                  output.write(f'export {name}={shlex.quote(os.environ.get(name, ""))}\n')
+          PY
+
+      - name: Configure SSH
+        env:
+          ALWAYSDATA_SSH_PRIVATE_KEY: ${{ secrets.ALWAYSDATA_SSH_PRIVATE_KEY }}
+        run: |
+          test -n "$ALWAYSDATA_SSH_PRIVATE_KEY"
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$ALWAYSDATA_SSH_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          cp .github/ssh/alwaysdata_known_hosts "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/known_hosts"
+
+      - name: Send check inputs to Alwaysdata
+        run: |
+          ssh -o BatchMode=yes doctowatch@ssh-doctowatch.alwaysdata.net \
+            'mkdir -p /home/doctowatch/doctowatch/tmp/previous'
+          scp -o BatchMode=yes config.yml \
+            doctowatch@ssh-doctowatch.alwaysdata.net:/home/doctowatch/doctowatch/config.yml
+          scp -o BatchMode=yes tmp/previous/report.json \
+            doctowatch@ssh-doctowatch.alwaysdata.net:/home/doctowatch/doctowatch/tmp/previous/report.json
+          scp -o BatchMode=yes tmp/.github-check-env bin/check_on_alwaysdata \
+            doctowatch@ssh-doctowatch.alwaysdata.net:/home/doctowatch/doctowatch/tmp/
+
+      - name: Run availability check
+        run: |
+          status=0
+          ssh -o BatchMode=yes doctowatch@ssh-doctowatch.alwaysdata.net \
+            "bash /home/doctowatch/doctowatch/tmp/check_on_alwaysdata $GITHUB_RUN_ID" || status=$?
+          scp -o BatchMode=yes \
+            "doctowatch@ssh-doctowatch.alwaysdata.net:/home/doctowatch/doctowatch/tmp/report-$GITHUB_RUN_ID.json" \
+            tmp/report.json || status=1
+          exit "$status"
 
       - name: Upload report
         if: always()

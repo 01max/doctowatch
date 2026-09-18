@@ -3,6 +3,7 @@ name: Build Alwaysdata Ruby bundle
 on:
   push:
     branches:
+      - main
       - codex/fix-json3-httparty
     paths:
       - Gemfile
